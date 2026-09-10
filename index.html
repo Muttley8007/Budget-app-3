@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Payday Planner</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#000000">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon-192.svg">
+
+  <link rel="stylesheet" href="styles.css?v=300-beta1">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="hero">
+      <div class="hero-copy">
+        <p class="eyebrow">Payday Planner <span class="version-badge">v3 beta</span></p>
+        <h1>Plan each pay. See the road ahead.</h1>
+        <p class="hero-text">
+          Track income, expenses, and what is left for each pay cycle without drowning in a full budgeting system.
+        </p>
+      </div>
+      <div class="hero-actions">
+        <button class="btn btn-secondary" onclick="showTab('dashboard')">Dashboard</button>
+        <button class="btn btn-secondary" onclick="showTab('bills')">Bills</button>
+        <button class="btn btn-secondary" onclick="showTab('annualizer')">Annualizer</button>
+        <button class="btn btn-secondary" onclick="showTab('mortgages')">Home Loans</button>
+        <button class="btn btn-primary" onclick="showTab('cards')">Pay Cards</button>
+      </div>
+    </header>
+<section id="cardsTab" class="tab-section">
+      <div class="panel add-pay-panel">
+        <div class="panel-header">
+          <h2>Add Pay Period</h2>
+          <p>Create a new pay card for this cycle.</p>
+        </div>
+
+        <div class="form-grid">
+          <label class="field">
+            <span>Pay date</span>
+            <input id="payDate" type="date">
+          </label>
+
+          <label class="field">
+            <span>Expected pay</span>
+            <input id="payAmt" type="number" step="0.01" placeholder="Expected pay">
+          </label>
+        </div>
+
+        <label class="field">
+          <span>Notes</span>
+          <textarea id="payNote" placeholder="Notes"></textarea>
+        </label>
+
+        <div class="panel-actions">
+          <button class="btn btn-primary" onclick="addPay()">Add Pay Period</button>
+        </div>
+      </div>
+
+      <div class="cards-grid" id="list"></div>
+    </section>
+
+    <section id="dashboardTab" class="tab-section" style="display:none;">
+      <div class="panel" id="dashboard"></div>
+    </section>
+
+    <section id="billsTab" class="tab-section" style="display:none;">
+      <div id="bills"></div>
+    </section>
+
+    <section id="annualizerTab" class="tab-section" style="display:none;">
+      <div id="annualizer"></div>
+    </section>
+
+    <section id="mortgagesTab" class="tab-section" style="display:none;">
+      <div id="mortgages"></div>
+    </section>
+  </div>
+<nav class="mobile-bottom-nav" aria-label="Primary navigation">
+    <button class="mobile-nav-item" data-tab="dashboard" onclick="showTab('dashboard')">
+      <span class="mobile-nav-icon">▦</span><span>Dashboard</span>
+    </button>
+    <button class="mobile-nav-item" data-tab="bills" onclick="showTab('bills')">
+      <span class="mobile-nav-icon">▤</span><span>Bills</span>
+    </button>
+    <button class="mobile-nav-add" onclick="contextualAdd()" title="Add">+</button>
+    <button class="mobile-nav-item" data-tab="cards" onclick="showTab('cards')">
+      <span class="mobile-nav-icon">▣</span><span>Pay Cards</span>
+    </button>
+    <button class="mobile-nav-item mobile-nav-more" onclick="toggleGlobalMenu()" title="Backup and restore">
+      <span class="mobile-nav-icon">⚙</span><span>More</span>
+    </button>
+  </nav>
+
+  <div id="globalMenuBackdrop" class="global-menu-backdrop" style="display:none;" onclick="closeGlobalMenu()"></div>
+  <div id="globalMenu" class="global-menu-sheet" style="display:none;">
+    <div class="global-menu-handle"></div>
+    <div class="global-menu-heading">
+      <div>
+        <h3>Payday Planner</h3>
+        <p>Backup and restore</p>
+      </div>
+      <button class="icon-btn" onclick="closeGlobalMenu()" title="Close">×</button>
+    </div>
+
+    <button class="global-menu-action" onclick="showTab('annualizer'); closeGlobalMenu();">
+      <span class="global-menu-action-icon">◎</span><span><strong>Annualizer</strong><small>Buy future bills out of monthly cash flow</small></span>
+    </button>
+    <button class="global-menu-action" onclick="showTab('mortgages'); closeGlobalMenu();">
+      <span class="global-menu-action-icon">⌂</span><span><strong>Home Loans</strong><small>Track the payoff date and daily forward schedule</small></span>
+    </button>
+    <button class="global-menu-action" onclick="exportData(); closeGlobalMenu();">
+      <span class="global-menu-action-icon">⇩</span>
+      <span>
+        <strong>Export backup</strong>
+        <small>Save a copy of your current data</small>
+      </span>
+    </button>
+
+    <button class="global-menu-action" onclick="document.getElementById('importFile').click()">
+      <span class="global-menu-action-icon">⇧</span>
+      <span>
+        <strong>Import backup</strong>
+        <small>Restore data from an exported file</small>
+      </span>
+    </button>
+
+    <input id="importFile" type="file" accept="application/json"
+      style="display:none" onchange="importData(event); closeGlobalMenu();">
+  </div>
+
+  <script src="app.js?v=300-beta1"></script>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('./service-worker.js');
+      });
+    }
+  </script>
+
+</body>
+</html>
