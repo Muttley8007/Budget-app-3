@@ -1,13 +1,16 @@
-# 3.0.0-beta.1
-
-- Added Annualizer section.
-- Added multi-mortgage Home Loans section.
-- Added daily mortgage projection with dated credits, debits and interest-rate changes.
-- Added recurring weekly, fortnightly and monthly mortgage events.
-- Added collapsible year/month schedule view.
-- Added v2 local-data migration and backup compatibility.
+## 3.0.0-beta.3
+- Mortgage schedules are now event-led. Creating a loan generates no speculative daily projection.
+- One-off credits/debits calculate only through the latest known transaction.
+- A full payoff projection starts only after a recurring credit/repayment is defined.
+- Prevents runaway projections when repayment behaviour has not yet been entered.
 
 # Changelog
+
+## 3.0.0-beta.2
+- Prevent runaway mortgage forecasts when no repayment has been entered.
+- Stop projections when a full year fails to reduce the balance.
+- Collapse future years and months by default so daily rows are rendered only when opened.
+- Show a clear warning when a payoff date cannot yet be calculated.
 
 ## v2.0.0-beta.1
 - Added Bills tab.

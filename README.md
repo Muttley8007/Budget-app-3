@@ -1,6 +1,6 @@
 # Payday Planner v3 Beta
 
-Version **3.0.0-beta.1**.
+Version **3.0.0-beta.3**.
 
 This beta adds two major planning modules while retaining the v2.4 Pay Cards and Bills experience:
 
@@ -52,3 +52,5 @@ This repo is now PWA-ready.
 
 ### Note
 If you change files and do not see updates straight away, refresh once or clear the app/site cache because the service worker caches assets for offline use.
+
+Beta 4: Reusable date-free payday templates, including bills and expected income. Existing paydays can be saved as templates. Templates are included in backups.

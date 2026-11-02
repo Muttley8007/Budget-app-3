@@ -1,4 +1,4 @@
-const APP_VERSION = '3.0.0-beta.1';
+const APP_VERSION = '3.0.0-beta.4';
 const K = 'payday-planner-v3-beta';
 const LEGACY_KEYS = ['bills-beta-pay-budget-lite-v2-beta'];
 
@@ -18,6 +18,7 @@ if (!data.templates) data.templates = [];
 if (!data.pays) data.pays = [];
 if (!data.bills) data.bills = [];
 if (!data.billTemplates) data.billTemplates = [];
+if (!Array.isArray(data.paydayTemplates)) data.paydayTemplates = [];
 
 if (!data.annualizerItems) data.annualizerItems = [];
 if (!data.mortgages) data.mortgages = [];
@@ -131,6 +132,22 @@ function addPay() {
 
   render();
 }
+
+
+let paydayTemplateDraft = null;
+function ptId(){return 'pt'+Date.now()+Math.random().toString(36).slice(2,8)}
+function ptCopyExpenses(items){return (items||[]).map(e=>({id:ptId(),name:e.name,amount:Number(e.amount),cat:e.cat||'Fixed',paid:false}));}
+function newPaydayTemplate(){paydayTemplateDraft={name:'',pay:0,note:'',expenses:[]};renderPaydayTemplates();}
+function templateFromPay(id){const p=data.pays.find(x=>x.id===id);if(!p)return;paydayTemplateDraft={name:p.note||'Standard payday',pay:p.pay,note:p.note||'',expenses:ptCopyExpenses(p.expenses)};showTab('cards');renderPaydayTemplates();document.getElementById('paydayTemplates').scrollIntoView({behavior:'smooth'});}
+function editPaydayTemplate(id){const t=data.paydayTemplates.find(x=>x.id===id);if(!t)return;paydayTemplateDraft=JSON.parse(JSON.stringify(t));renderPaydayTemplates();}
+function templateField(field,value){if(paydayTemplateDraft)paydayTemplateDraft[field]=field==='pay'?Number(value):value;}
+function templateAddBill(){const n=document.getElementById('ptBillName').value.trim(),a=Number(document.getElementById('ptBillAmount').value),c=document.getElementById('ptBillCat').value;if(!n||!Number.isFinite(a)||a<=0){alert('Enter a bill name and positive amount');return;}paydayTemplateDraft.expenses.push({id:ptId(),name:n,amount:a,cat:c,paid:false});renderPaydayTemplates();}
+function templateRemoveBill(id){paydayTemplateDraft.expenses=paydayTemplateDraft.expenses.filter(x=>x.id!==id);renderPaydayTemplates();}
+function templateEditBill(id){const e=paydayTemplateDraft.expenses.find(x=>x.id===id);if(!e)return;const n=prompt('Bill name',e.name);if(n===null)return;const a=prompt('Amount',e.amount);if(a===null)return;if(!n.trim()||!Number.isFinite(Number(a))||Number(a)<=0){alert('Enter a valid name and amount');return;}e.name=n.trim();e.amount=Number(a);renderPaydayTemplates();}
+function savePaydayTemplate(){const t=paydayTemplateDraft;if(!t)return;if(!t.name.trim()||!Number.isFinite(t.pay)||t.pay<=0){alert('Enter a template name and expected pay');return;}const item={id:t.id||ptId(),name:t.name.trim(),pay:t.pay,note:t.note||'',expenses:ptCopyExpenses(t.expenses)};const i=data.paydayTemplates.findIndex(x=>x.id===item.id);if(i<0)data.paydayTemplates.push(item);else data.paydayTemplates[i]=item;paydayTemplateDraft=null;save();renderPaydayTemplates();}
+function deletePaydayTemplate(id){if(!confirm('Delete this template? Existing paydays are unaffected.'))return;data.paydayTemplates=data.paydayTemplates.filter(x=>x.id!==id);save();renderPaydayTemplates();}
+function usePaydayTemplate(id){const t=data.paydayTemplates.find(x=>x.id===id),d=document.getElementById('ptDate'+id)?.value;if(!t||!d){alert('Choose a payday date');return;}data.pays.unshift({id:ptId(),date:d,pay:t.pay,note:t.note,expenses:ptCopyExpenses(t.expenses),archived:false,collapsed:false});save();render();}
+function renderPaydayTemplates(){const box=document.getElementById('paydayTemplates');if(!box)return;const t=paydayTemplateDraft;box.innerHTML=`<div class="panel-header"><h2>Payday templates</h2><p>Save a payday without a date, then reuse it whenever needed.</p></div>${t?`<div class="pt-editor"><label class="field">Template name<input value="${escapeHtml(t.name)}" oninput="templateField('name',this.value)"></label><label class="field">Expected pay<input type="number" step="0.01" value="${t.pay||''}" oninput="templateField('pay',this.value)"></label><label class="field">Notes<input value="${escapeHtml(t.note||'')}" oninput="templateField('note',this.value)"></label><h3>Bills (${t.expenses.length})</h3>${t.expenses.map(e=>`<div class="pt-line"><span>${escapeHtml(e.name)} (${escapeHtml(e.cat||'Fixed')})</span><strong>${money(e.amount)}</strong><button class="btn btn-secondary" onclick="templateEditBill('${e.id}')">Edit</button><button class="btn btn-secondary" onclick="templateRemoveBill('${e.id}')">×</button></div>`).join('')}<div class="pt-line"><input id="ptBillName" placeholder="Bill name"><input id="ptBillAmount" type="number" step="0.01" placeholder="Amount"><select id="ptBillCat"><option>Fixed</option><option>Variable</option><option>Optional</option><option>Buffer</option></select><button class="btn btn-secondary" onclick="templateAddBill()">Add bill</button></div><div class="panel-actions"><button class="btn btn-primary" onclick="savePaydayTemplate()">Save template</button><button class="btn btn-secondary" onclick="paydayTemplateDraft=null;renderPaydayTemplates()">Cancel</button></div></div>`:`<button class="btn btn-secondary" onclick="newPaydayTemplate()">+ Create template</button>`}<div class="pt-list">${data.paydayTemplates.map(x=>`<div class="pt-item"><div><strong>${escapeHtml(x.name)}</strong><p>${money(x.pay)} · ${x.expenses.length} bills</p></div><div class="pt-actions"><input type="date" aria-label="Payday date" id="ptDate${x.id}"><button class="btn btn-primary" onclick="usePaydayTemplate('${x.id}')">Create payday</button><button class="btn btn-secondary" onclick="editPaydayTemplate('${x.id}')">Edit</button><button class="btn btn-secondary" onclick="deletePaydayTemplate('${x.id}')">Delete</button></div></div>`).join('')}</div>`;}
 
 function editPay(id) {
   const pay = data.pays.find(x => x.id === id);
@@ -1179,6 +1196,7 @@ function renderBills(){
 }
 
 function render() {
+  renderPaydayTemplates();
   renderDashboard();
   renderBills();
   renderAnnualizer();
@@ -1259,6 +1277,7 @@ function render() {
               ${openMenuPayId === p.id ? `
                 <div class="menu-panel pp-pay-menu">
                   <button class="btn btn-secondary" onclick="editPay('${p.id}')">✎ Edit Pay</button>
+                  <button class="btn btn-secondary" onclick="templateFromPay('${p.id}')">Save as Template</button>
                   <button class="btn btn-danger" onclick="delPay('${p.id}')">⌫ Delete Pay</button>
                 </div>
               ` : ''}
@@ -1545,8 +1564,38 @@ function calculateMortgage(m){
   const maxDays=Math.max(365,Math.min(365*60,Number(m.maxYears||40)*366));
   const txByDate={};
   (m.transactions||[]).forEach(t=>{(txByDate[t.date]||(txByDate[t.date]=[])).push(t)});
-  let paidOffDate='';
-  for(let i=0;i<maxDays&&balance>0.005;i++){
+
+  // A payoff forecast is only meaningful once the user has defined a repeating
+  // future repayment. One-off transactions are treated as known events only.
+  const recurringCredits=(m.recurring||[]).filter(r=>r.type==='credit'&&Number(r.amount||0)>0);
+  const hasRecurringCredit=recurringCredits.length>0;
+  const datedTransactions=(m.transactions||[]).filter(t=>t.date>=m.startDate);
+  const hasDatedTransaction=datedTransactions.length>0;
+
+  // Creating a mortgage alone should be instant: no speculative daily schedule.
+  if(!hasRecurringCredit && !hasDatedTransaction){
+    return {
+      rows:[], paidOffDate:'', totalInterest:0, endingBalance:balance, unpaid:true,
+      projectionWarning:'Record a payment or withdrawal to start the schedule. Add a recurring repayment to calculate a payoff date.',
+      previewOnly:true
+    };
+  }
+
+  // With only one-off events, calculate only as far as the last known event.
+  // Once a recurring credit exists, project normally until payoff / safety stop.
+  let effectiveMaxDays=maxDays;
+  let eventOnly=false;
+  if(!hasRecurringCredit){
+    eventOnly=true;
+    const lastEventDate=datedTransactions.map(t=>t.date).sort().at(-1);
+    const start=new Date(m.startDate+'T00:00:00Z');
+    const end=new Date(lastEventDate+'T00:00:00Z');
+    effectiveMaxDays=Math.max(1,Math.round((end-start)/86400000)+1);
+  }
+
+  let paidOffDate='', projectionWarning='';
+  let yearStartBalance=balance;
+  for(let i=0;i<effectiveMaxDays&&balance>0.005;i++){
     const openingBalance=balance;
     const rate=rateForDate(m,date);
     const dailyInterest=openingBalance*(rate/100)/365;
@@ -1577,14 +1626,24 @@ function calculateMortgage(m){
     rows.push({date,balance:openingBalance,closingBalance,credits,debits,rate,dailyInterest,interestCharged,description:descriptions.join(' • ')});
     balance=closingBalance;
     date=addDaysIso(date,1);
+    if(!eventOnly && (i+1)%365===0 && balance>0.005){
+      if(balance>=yearStartBalance-0.01){
+        projectionWarning='Current payments are not reducing the loan balance. Projection stopped after one non-reducing year.';
+        break;
+      }
+      yearStartBalance=balance;
+    }
   }
-  return {rows,paidOffDate,totalInterest,endingBalance:balance,unpaid:!paidOffDate};
+  if(eventOnly && !paidOffDate) projectionWarning='Known transactions calculated. Add a recurring repayment to calculate a payoff date.';
+  else if(!paidOffDate && !projectionWarning) projectionWarning=`Mortgage is not paid off within the ${m.maxYears}-year forecast.`;
+  return {rows,paidOffDate,totalInterest,endingBalance:balance,unpaid:!paidOffDate,projectionWarning,previewOnly:eventOnly};
 }
 function toggleMortgageYear(year){const k=selectedMortgage()?.id+':'+year;data.mortgageUi.collapsedYears[k]=!data.mortgageUi.collapsedYears[k];save();renderMortgages();}
 function toggleMortgageMonth(ym){const k=selectedMortgage()?.id+':'+ym;data.mortgageUi.collapsedMonths[k]=!data.mortgageUi.collapsedMonths[k];save();renderMortgages();}
 function mortgageScheduleHtml(m,calc){
   const years={};calc.rows.forEach(r=>{const y=yearKey(r.date),mo=monthKey(r.date);years[y]??={};years[y][mo]??=[];years[y][mo].push(r);});
-  return Object.keys(years).map(y=>{const yRows=Object.values(years[y]).flat();const yStart=yRows[0]?.balance||0,yEnd=yRows[yRows.length-1]?.balance||0;const yc=yRows.reduce((s,r)=>s+r.credits,0),yd=yRows.reduce((s,r)=>s+r.debits+r.interestCharged,0);const yk=m.id+':'+y;const ycCollapsed=!!data.mortgageUi.collapsedYears[yk];return `<section class="schedule-year"><button class="schedule-toggle" onclick="toggleMortgageYear('${y}')"><span>${ycCollapsed?'▶':'▼'} ${y}</span><em>${money(yStart)} → ${money(yEnd)} • credits ${money(yc)} • debits/interest ${money(yd)}</em></button>${ycCollapsed?'':Object.keys(years[y]).map(mo=>{const rows=years[y][mo],mk=m.id+':'+mo,mc=!!data.mortgageUi.collapsedMonths[mk];const start=rows[0]?.balance||0,end=rows[rows.length-1]?.balance||0,interest=rows.reduce((s,r)=>s+r.dailyInterest,0);return `<div class="schedule-month"><button class="schedule-toggle month" onclick="toggleMortgageMonth('${mo}')"><span>${mc?'▶':'▼'} ${new Date(mo+'-01T00:00:00').toLocaleDateString('en-AU',{month:'long'})}</span><em>${money(start)} → ${money(end)} • interest ${money(interest)}</em></button>${mc?'':`<div class="schedule-table-wrap"><table class="schedule-table"><thead><tr><th>Date</th><th>Balance</th><th>Credit</th><th>Debit</th><th>Rate</th><th>Daily interest</th><th>Description</th></tr></thead><tbody>${rows.map(r=>`<tr class="${r.description?'has-event':''}"><td>${dateFmt(r.date)}</td><td>${money(r.balance)}</td><td>${r.credits?money(r.credits):''}</td><td>${(r.debits+r.interestCharged)?money(r.debits+r.interestCharged):''}</td><td>${r.rate.toFixed(3)}%</td><td>${money(r.dailyInterest)}</td><td>${escapeHtml(r.description)}</td></tr>`).join('')}</tbody></table></div>`}</div>`}).join('')}</section>`}).join('');
+  const yearNames=Object.keys(years);
+  return yearNames.map((y,yi)=>{const yRows=Object.values(years[y]).flat();const yStart=yRows[0]?.balance||0,yEnd=yRows[yRows.length-1]?.closingBalance||0;const yc=yRows.reduce((s,r)=>s+r.credits,0),yd=yRows.reduce((s,r)=>s+r.debits+r.interestCharged,0);const yk=m.id+':'+y;const yearState=data.mortgageUi.collapsedYears[yk];const ycCollapsed=(typeof yearState==='boolean')?yearState:yi>0;return `<section class="schedule-year"><button class="schedule-toggle" onclick="toggleMortgageYear('${y}')"><span>${ycCollapsed?'▶':'▼'} ${y}</span><em>${money(yStart)} → ${money(yEnd)} • credits ${money(yc)} • debits/interest ${money(yd)}</em></button>${ycCollapsed?'':Object.keys(years[y]).map((mo,mi)=>{const rows=years[y][mo],mk=m.id+':'+mo,monthState=data.mortgageUi.collapsedMonths[mk];const mc=(typeof monthState==='boolean')?monthState:mi>0;const start=rows[0]?.balance||0,end=rows[rows.length-1]?.closingBalance||0,interest=rows.reduce((s,r)=>s+r.dailyInterest,0);return `<div class="schedule-month"><button class="schedule-toggle month" onclick="toggleMortgageMonth('${mo}')"><span>${mc?'▶':'▼'} ${new Date(mo+'-01T00:00:00').toLocaleDateString('en-AU',{month:'long'})}</span><em>${money(start)} → ${money(end)} • interest ${money(interest)}</em></button>${mc?'':`<div class="schedule-table-wrap"><table class="schedule-table"><thead><tr><th>Date</th><th>Balance</th><th>Credit</th><th>Debit</th><th>Rate</th><th>Daily interest</th><th>Description</th></tr></thead><tbody>${rows.map(r=>`<tr class="${r.description?'has-event':''}"><td>${dateFmt(r.date)}</td><td>${money(r.balance)}</td><td>${r.credits?money(r.credits):''}</td><td>${(r.debits+r.interestCharged)?money(r.debits+r.interestCharged):''}</td><td>${r.rate.toFixed(3)}%</td><td>${money(r.dailyInterest)}</td><td>${escapeHtml(r.description)}</td></tr>`).join('')}</tbody></table></div>`}</div>`}).join('')}</section>`}).join('');
 }
 function mortgageEntriesHtml(m){
  const entries=[...(m.transactions||[]).map(x=>({...x,kind:'transaction',sortDate:x.date})),...(m.recurring||[]).map(x=>({...x,kind:'recurring',sortDate:x.startDate}))].sort((a,b)=>a.sortDate.localeCompare(b.sortDate));
@@ -1593,10 +1652,10 @@ function mortgageEntriesHtml(m){
 function renderMortgages(){
  const box=document.getElementById('mortgages');if(!box)return;
  if(!data.mortgages.length){box.innerHTML=`<div class="v3-empty-hero"><div class="v3-kicker">HOME LOANS</div><h2>Add your first mortgage</h2><p>The calculator will build the daily forward schedule and make the payoff date the scoreboard.</p>${mortgageCreateForm()}</div>`;return;}
- const m=selectedMortgage(),calc=calculateMortgage(m);const payoff=calc.paidOffDate?dateFmt(calc.paidOffDate):`Beyond ${m.maxYears} year forecast`;
+ const m=selectedMortgage(),calc=calculateMortgage(m);const payoff=calc.paidOffDate?dateFmt(calc.paidOffDate):(calc.previewOnly?'Add repayments to calculate':`No payoff on current plan`);
  box.innerHTML=`<div class="mortgage-selector"><div class="mortgage-tabs">${data.mortgages.map(x=>`<button class="${x.id===m.id?'active':''}" onclick="selectMortgage('${x.id}')">${escapeHtml(x.name)}</button>`).join('')}<button onclick="document.getElementById('newMortgagePanel').classList.toggle('hidden')">＋ Add loan</button></div></div>
  <div id="newMortgagePanel" class="panel hidden">${mortgageCreateForm()}</div>
- <div class="mortgage-hero"><div class="v3-kicker">YOUR MORTGAGE WILL BE PAID OFF ON</div><div class="mortgage-payoff-date">${payoff}</div><div class="mortgage-hero-stats"><span>Starting/current balance <strong>${money(m.openingBalance)}</strong></span><span>Forecast interest <strong>${money(calc.totalInterest)}</strong></span><span>Schedule rows <strong>${calc.rows.length.toLocaleString('en-AU')}</strong></span></div></div>
+ <div class="mortgage-hero"><div class="v3-kicker">YOUR MORTGAGE WILL BE PAID OFF ON</div><div class="mortgage-payoff-date">${payoff}</div>${calc.projectionWarning?`<div class="mortgage-warning">${escapeHtml(calc.projectionWarning)}</div>`:''}<div class="mortgage-hero-stats"><span>Starting/current balance <strong>${money(m.openingBalance)}</strong></span><span>${calc.previewOnly?'Interest across known events':'Forecast interest'} <strong>${money(calc.totalInterest)}</strong></span><span>Schedule rows <strong>${calc.rows.length.toLocaleString('en-AU')}</strong></span></div></div>
  <div class="v3-two-col mortgage-controls"><section class="panel"><div class="panel-header"><h2>Record credit or debit</h2><p>Put money in, pull money out, or create a repeating future transaction.</p></div><div class="form-grid"><label class="field"><span>Type</span><select id="mortgageTransactionType"><option value="credit">Credit — money into mortgage</option><option value="debit">Debit — money out</option></select></label><label class="field"><span>Date</span><input id="mortgageTransactionDate" type="date" value="${new Date().toISOString().slice(0,10)}"></label></div><div class="form-grid"><label class="field"><span>Amount</span><input id="mortgageTransactionAmount" type="number" step="0.01"></label><label class="field"><span>Description</span><input id="mortgageTransactionDescription" placeholder="Pay, car payment, strata…"></label></div><div class="form-grid"><label class="field"><span>Repeat</span><select id="mortgageTransactionRepeat"><option value="once">Once</option><option value="fortnightly">Fortnightly</option><option value="monthly">Monthly</option><option value="weekly">Weekly</option></select></label><label class="field"><span>Repeat until (optional)</span><input id="mortgageTransactionUntil" type="date"></label></div><button class="btn btn-primary" onclick="addMortgageTransaction()">Record transaction</button><div class="mortgage-entry-list">${mortgageEntriesHtml(m)}</div></section>
  <section class="panel"><div class="panel-header"><h2>Interest rate history</h2><p>Add a new effective rate once. Every future daily row recalculates automatically.</p></div><div class="form-grid"><label class="field"><span>Effective date</span><input id="mortgageRateDate" type="date"></label><label class="field"><span>New rate (%)</span><input id="mortgageNewRate" type="number" step="0.001"></label></div><button class="btn btn-primary" onclick="addMortgageRate()">Add rate change</button><div class="mortgage-entry-list">${(m.rateChanges||[]).sort((a,b)=>b.date.localeCompare(a.date)).map(r=>`<div class="mortgage-entry"><div><strong>${Number(r.rate).toFixed(3)}%</strong><span>Effective ${dateFmt(r.date)}</span></div><button class="icon-btn" onclick="deleteMortgageEntry('rate','${r.id}')">⌫</button></div>`).join('')}</div><button class="btn btn-danger v3-delete-loan" onclick="deleteMortgage('${m.id}')">Delete this loan</button></section></div>
  <section class="panel schedule-panel"><div class="panel-header"><h2>Forward daily schedule</h2><p>Years and months are collapsible. Event days are highlighted so you can see exactly what changed the plan.</p></div>${mortgageScheduleHtml(m,calc)}</section>`;
