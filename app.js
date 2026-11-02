@@ -1,4 +1,4 @@
-const APP_VERSION = '3.0.0-beta.4';
+const APP_VERSION = '3.0.0-beta.5';
 const K = 'payday-planner-v3-beta';
 const LEGACY_KEYS = ['bills-beta-pay-budget-lite-v2-beta'];
 
@@ -1700,6 +1700,7 @@ function importData(event) {
       if (!Array.isArray(imported.templates)) imported.templates = [];
       if (!Array.isArray(imported.bills)) imported.bills = [];
       if (!Array.isArray(imported.billTemplates)) imported.billTemplates = [];
+      if (!Array.isArray(imported.paydayTemplates)) imported.paydayTemplates = [];
       if (!Array.isArray(imported.annualizerItems)) imported.annualizerItems = [];
       if (!Array.isArray(imported.mortgages)) imported.mortgages = [];
       if (!imported.annualizerSettings) imported.annualizerSettings = { year: new Date().getFullYear() + 1 };
@@ -1723,7 +1724,7 @@ function importData(event) {
       render();
       alert('Import complete.');
     } catch (err) {
-      alert('Could not read that file as valid JSON.');
+      console.error(err); alert('Import failed: ' + err.message);
     } finally {
       event.target.value = '';
     }
